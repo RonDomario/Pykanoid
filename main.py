@@ -73,10 +73,11 @@ class Game:
             Game.clock.tick(Game.fps)
             self.screen.blit(Game.bg_image, (0, 0))
             if not self.game_over:
-                self.platform.control(self.screen)
+                self.platform.control()
                 self.score, self.game_over = self.ball.update(self.brick_group, self.platform, self.score,
                                                               self.game_over)
                 self.ball.draw(self.screen)
+            self.platform.draw(self.screen)
             for brick in self.brick_group:
                 brick.draw(self.screen)
             self.draw_text(f'SCORE: {self.score}', Game.font_score, 'black', 60, 20)
@@ -129,7 +130,7 @@ class Platform:
             self.control = self.keyboard
             self.speed = self.fast
 
-    def mouse(self, screen):
+    def mouse(self):
         mouse_x, mouse_y = pygame.mouse.get_pos()
         target_pos = pygame.Vector2(mouse_x, self.y)
         direction = target_pos - self.pos
@@ -139,9 +140,8 @@ class Platform:
         self.rect.center = self.pos.x, self.y
         self.rect.left = max(0, self.rect.left)
         self.rect.right = min(Game.screen_width, self.rect.right)
-        screen.blit(self.image, self.rect)
 
-    def keyboard(self, screen):
+    def keyboard(self):
         key = pygame.key.get_pressed()
         if key[pygame.K_LEFT]:
             self.speed = self.slow
@@ -153,6 +153,8 @@ class Platform:
             if key[pygame.K_LSHIFT]:
                 self.speed = self.fast
             self.rect.right = min(Game.screen_width, self.rect.right + self.speed)
+
+    def draw(self, screen):
         screen.blit(self.image, self.rect)
 
 
@@ -164,7 +166,7 @@ class Ball:
         self.speed = 6
         self.move_x = self.speed * 0
         self.move_y = self.speed * (-1)
-        self.vector_length = 5
+        self.norm_vector_length = 1
         self.angle_min = 30
         self.angle_max = 70
         self.angle_diff = self.angle_max - self.angle_min
@@ -207,14 +209,14 @@ class Ball:
                                      self.rect.height):
             dist = min(abs(platform.rect.centerx - self.rect.centerx), Game.platform_half)
             ratio = dist / Game.platform_half
-            y = self.vector_length * sin((self.angle_min + self.angle_diff * (1 - ratio)) * pi / 180)
-            x = (self.vector_length ** 2 - y ** 2) ** 0.5
+            y = self.norm_vector_length * sin((self.angle_min + self.angle_diff * (1 - ratio)) * pi / 180)
+            x = (self.norm_vector_length ** 2 - y ** 2) ** 0.5
 
-            self.move_y = - y / self.vector_length * self.speed
+            self.move_y = - y * self.speed
             if self.rect.centerx >= platform.rect.centerx:
-                self.move_x = x / self.vector_length * self.speed
+                self.move_x = x * self.speed
             else:
-                self.move_x = -x / self.vector_length * self.speed
+                self.move_x = -x * self.speed
         self.rect.x += self.move_x
         self.rect.y += self.move_y
         return score, game_over
